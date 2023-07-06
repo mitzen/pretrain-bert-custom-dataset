@@ -1,9 +1,16 @@
 from datasets import load_dataset
 dataset = load_dataset("sem_eval_2018_task_1", "subtask5.english")
 
+#### what does the dataset looks like? 
+print(dataset['train'][0])
+### the dataset labels 
+print(dataset['train'].features.keys())
+
+## build up our label2id and vice versa 
 labels = [label for label in dataset['train'].features.keys() if label not in ['ID', 'Tweet']]
 id2label = {idx:label for idx, label in enumerate(labels)}
 label2id = {label:idx for idx, label in enumerate(labels)}
+
 from transformers import AutoTokenizer
 import numpy as np
 
@@ -16,6 +23,8 @@ def preprocess_data(examples):
   encoding = tokenizer(text, padding="max_length", truncation=True, max_length=128)
   # add labels
   labels_batch = {k: examples[k] for k in examples.keys() if k in labels}
+  print("label batch")
+  print(labels_batch)
   # create numpy array of shape (batch_size, num_labels)
   labels_matrix = np.zeros((len(text), len(labels)))
   # fill numpy array
@@ -30,14 +39,11 @@ encoded_dataset = dataset.map(preprocess_data, batched=True, remove_columns=data
 
 example = encoded_dataset['train'][0]
 print(example.keys())
-
 # dict_keys(['input_ids', 'token_type_ids', 'attention_mask', 'labels'])
 
-tokenizer.decode(example['input_ids'])
-
+print(tokenizer.decode(example['input_ids']))
 print(example['labels'])
 encoded_dataset.set_format("torch")
-
 
 from transformers import AutoModelForSequenceClassification
 
@@ -47,12 +53,8 @@ model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased",
                                                            id2label=id2label,
                                                            label2id=label2id)
 
-
-
 batch_size = 8
 metric_name = "f1"
-
-
 
 from transformers import TrainingArguments, Trainer
 
@@ -96,6 +98,7 @@ def multi_label_metrics(predictions, labels, threshold=0.5):
     return metrics
 
 def compute_metrics(p: EvalPrediction):
+    print(p.predictions[0])
     preds = p.predictions[0] if isinstance(p.predictions, 
             tuple) else p.predictions
     result = multi_label_metrics(
@@ -110,7 +113,6 @@ print(encoded_dataset['train'][0]['labels'].type())
 outputs = model(input_ids=encoded_dataset['train']['input_ids'][0].unsqueeze(0), labels=encoded_dataset['train'][0]['labels'].unsqueeze(0))
 print(outputs)
 
-
 ## start the training process ##
 
 trainer = Trainer(
@@ -124,8 +126,8 @@ trainer = Trainer(
 
 trainer.train()
 
-trainer.evaluate()
-
+er = trainer.evaluate()
+print(er)
 ### inference 
 
 text = "I'm happy I can finally train a model for multi-label classification"
@@ -147,5 +149,11 @@ probs = sigmoid(logits.squeeze().cpu())
 predictions = np.zeros(probs.shape)
 predictions[np.where(probs >= 0.5)] = 1
 # turn predicted id's into actual label names
+
+for i, l in enumerate(predictions):
+ print("idx", i)
+ print("label", l)
+## get all the 1 - postive value 
+## and match those to the id2label generated earlier
 predicted_labels = [id2label[idx] for idx, label in enumerate(predictions) if label == 1.0]
 print(predicted_labels)
