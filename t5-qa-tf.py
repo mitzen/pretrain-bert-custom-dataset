@@ -117,8 +117,8 @@ def encode(example,
                'labels':target_ids, 'decoder_attention_mask':target_attention}
     return outputs
 
-train_ds=  train_dataset.map(encode)
-valid_ds=  valid_dataset.map(encode)
+train_ds =  train_dataset.map(encode)
+valid_ds =  valid_dataset.map(encode)
 
 
 #
@@ -198,7 +198,6 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 metrics = [tf.keras.metrics.SparseTopKCategoricalAccuracy(name='accuracy') ]
 
 
-
 ## Training 
 learning_rate = CustomSchedule()
 # learning_rate = 0.001  # Instead set a static learning rate
@@ -207,7 +206,6 @@ optimizer = tf.keras.optimizers.Adam(learning_rate)
 
 model = SnapthatT5.from_pretrained("t5-base")
 model.compile(optimizer=optimizer, metrics=metrics)
-
 
 epochs_done = 0
 # model.fit(tf_train_ds, epochs=5, steps_per_epoch=steps, callbacks=callbacks, 
