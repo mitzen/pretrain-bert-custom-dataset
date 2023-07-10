@@ -48,11 +48,11 @@ def encode(example,
     answer_plus = f"{answer_plus} </s>"
     
     encoder_inputs = tokenizer(question_plus, truncation=True, 
-                               return_tensors='pt', max_length=encoder_max_len,
+                               return_tensors='tf', max_length=encoder_max_len,
                               pad_to_max_length=True)
     
     decoder_inputs = tokenizer(answer_plus, truncation=True, 
-                               return_tensors='pt', max_length=decoder_max_len,
+                               return_tensors='tf', max_length=decoder_max_len,
                               pad_to_max_length=True)
     
     # input_ids and input_attention => input_ids and attention_mask
@@ -99,6 +99,7 @@ args = TrainingArguments(
 
 # tokenized_train = train_ds.map(encode, batched=True)
 # tokenized_valid = valid_ds.map(encode, batched=True)
+
 
 train_size = 100
 

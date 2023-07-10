@@ -7,6 +7,7 @@ import datasets
 from transformers import AutoTokenizer, TFT5ForConditionalGeneration
 import datetime
 import os
+import torch
 
 model_name = "t5-base"
 tokenizer = AutoTokenizer.from_pretrained("t5-base")  
@@ -68,8 +69,16 @@ def encode(example,
                'labels':target_ids, 'decoder_attention_mask':target_attention}
     return outputs
 
-train_ds =  train_dataset.map(encode)
-valid_ds =  valid_dataset.map(encode)
+train_size = 100
+
+td = train_dataset.select(range(train_size))
+vd = valid_dataset.select(range(train_size))
+
+print(td[0])
+print(td[1])
+
+train_ds =  td.map(encode)
+valid_ds =  vd.map(encode)
 
 ## callback and metrics 
 
@@ -100,8 +109,6 @@ args = TrainingArguments(
 # tokenized_train = train_ds.map(encode, batched=True)
 # tokenized_valid = valid_ds.map(encode, batched=True)
 
-train_size = 100
-
 trainer = Trainer(
     model,
     args,
@@ -111,13 +118,21 @@ trainer = Trainer(
     tokenizer=tokenizer,
 )
 
+model_path = "./t5base-model-trained"
+
 trainer.train()
 
-context = """We went on a trip to Europe. We had our breakfast at 7 am in the morning at \
-the nearby coffee shop. Wore a dark blue over coat for our first visit to Louvre Museum \
-to experience history and art."""
+torch.save(model.state_dict(), model_path)
 
-question = "At what time did we had breakfast?"
+# model = T5ForConditionalGeneration.from_pretrained(model_name)
+# model.load_state_dict(torch.load(model_path))
+# model.eval()
+
+# context = """Architecturally, the school has a Catholic character. Atop the Main Building\'s gold dome is a golden statue of the Virgin Mary. Immediately in front of the Main Building and facing it, is a copper statue of Christ with arms upraised with the legend "Venite Ad Me Omnes". Next to the Main Building is the Basilica of the Sacred Heart. Immediately behind the basilica is the Grotto, a Marian place of prayer and reflection. It is a replica of the grotto at Lourdes, France where the Virgin Mary reputedly appeared to Saint Bernadette Soubirous in 1858. At the end of the main drive (and in a direct line that connects through 3 statues and the Gold Dome), is a simple, modern stone statue of Mary.."""
+
+context = """Architecturally, the school has a Catholic character. Atop the Main Building\'s gold dome is a golden statue of the Virgin Mary. Immediately in front of the Main Building and facing it, is a copper statue of Christ with arms upraised with the legend "Venite Ad Me Omnes". Next to the Main Building is the Basilica of the Sacred Heart. Immediately behind the basilica is the Grotto, a Marian place of prayer and reflection. It is a replica of the grotto at Lourdes, France where the Virgin Mary reputedly appeared to Saint Bernadette Soubirous in 1858. At the end of the main drive (and in a direct line that connects through 3 statues and the Gold Dome), is a simple, modern stone statue of Mary.."""
+
+question = "To whom did the Virgin Mary allegedly appear in 1858 in Lourdes France?"
 print(context)
 print(question)
 
@@ -133,6 +148,7 @@ generated_answer = model.generate(input_ids, attention_mask=attention_mask,
 
 #decoded_answer = tokenizer.decode(generated_answer.numpy()[0])
 decoded_answer = tokenizer.decode(generated_answer[0])
+
 decoded_answer2 = tokenizer.decode(generated_answer.numpy()[0])
 
 print("Answer: ", decoded_answer)
@@ -140,4 +156,5 @@ print("Answer: ", decoded_answer2)
 
 ## training accuracy 
 ## eval the model - as in metrics - i need to be able to manipulate. it has an eval_loss by default - where is this coming from?
+
 
